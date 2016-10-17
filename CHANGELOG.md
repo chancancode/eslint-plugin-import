@@ -6,6 +6,7 @@ This change log adheres to standards from [Keep a CHANGELOG](http://keepachangel
 ## [Unreleased]
 ### Fixed
 - [`prefer-default-export`] handles re-exported default exports ([#609])
+- [`order`] allows secondary alphabetical sort ([#389])
 
 ## [2.0.1] - 2016-10-06
 ### Fixed

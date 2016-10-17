@@ -17,6 +17,16 @@ function reverse(array) {
   }).reverse()
 }
 
+function alphabetical(firstName, secondName, direction) {
+  if (direction === 'a-z') {
+    return firstName < secondName
+  } else if (direction === 'z-a') {
+    return firstName > secondName
+  } else {
+    throw new Error('Invalid alphabetical direction' + direction)
+  }
+}
+
 function findOutOfOrder(imported) {
   if (imported.length === 0) {
     return []
@@ -31,10 +41,45 @@ function findOutOfOrder(imported) {
   })
 }
 
+function findOutOfAlphabeticalOrder(imported, sortOrder, direction) {
+  if (imported.length === 0 || sortOrder === 'ignore') {
+    return []
+  }
+  let maxSeenRankNode = imported[0]
+  let maxSeenAlphabeticalNode = imported[0]
+  return imported.filter(function (importedModule) {
+    if (maxSeenRankNode.rank < importedModule.rank) {
+      maxSeenRankNode = importedModule
+      // New group, reset max alphabetical node
+      maxSeenAlphabeticalNode = importedModule
+    }
+    const resAlphabetical = alphabetical(
+      importedModule.name,
+      maxSeenAlphabeticalNode.name,
+      direction
+    )
+    const reversedDirection = direction.split('').reverse().join('')
+    if (alphabetical(importedModule.name, maxSeenAlphabeticalNode.name, reversedDirection)) {
+      maxSeenAlphabeticalNode = importedModule
+    }
+    return resAlphabetical
+  })
+}
+
 function reportOutOfOrder(context, imported, outOfOrder, order) {
   outOfOrder.forEach(function (imp) {
     const found = imported.find(function hasHigherRank(importedItem) {
       return importedItem.rank > imp.rank
+    })
+    context.report(imp.node, '`' + imp.name + '` import should occur ' + order +
+      ' import of `' + found.name + '`')
+  })
+}
+
+function reportOutOfAlphabeticalOrder(context, imported, outOfOrder, order, direction) {
+  outOfOrder.forEach(function (imp) {
+    const found = imported.find(function hasHigherAlphabeticalOrder(importedItem) {
+      return alphabetical(imp.name, importedItem.name, direction) && importedItem.rank === imp.rank
     })
     context.report(imp.node, '`' + imp.name + '` import should occur ' + order +
       ' import of `' + found.name + '`')
@@ -54,6 +99,21 @@ function makeOutOfOrderReport(context, imported) {
     return
   }
   reportOutOfOrder(context, imported, outOfOrder, 'before')
+}
+
+function makeOutOfAlphabeticalOrderReport(context, imported, sortOrder) {
+  const outOfOrder = findOutOfAlphabeticalOrder(imported, sortOrder, 'a-z')
+  if (!outOfOrder.length) {
+    return
+  }
+  // There are things to report. Try to minimize the number of reported errors.
+  const reversedImported = reverse(imported)
+  const reversedOrder = findOutOfAlphabeticalOrder(reversedImported, sortOrder, 'z-a')
+  if (reversedOrder.length < outOfOrder.length) {
+    reportOutOfAlphabeticalOrder(context, reversedImported, reversedOrder, 'after', 'z-a')
+    return
+  }
+  reportOutOfAlphabeticalOrder(context, imported, outOfOrder, 'before', 'a-z')
 }
 
 // DETECTING
@@ -158,6 +218,9 @@ module.exports = {
           'newlines-between': {
             enum: [ 'ignore', 'always', 'never' ],
           },
+          'sort-order': {
+            enum: [ 'alphabetical', 'ignore' ],
+          },
         },
         additionalProperties: false,
       },
@@ -167,6 +230,7 @@ module.exports = {
   create: function importOrderRule (context) {
     const options = context.options[0] || {}
     const newlinesBetweenImports = options['newlines-between'] || 'ignore'
+    const sortOrder = options['sort-order'] || 'ignore'
     let ranks
 
     try {
@@ -205,6 +269,7 @@ module.exports = {
       },
       'Program:exit': function reportAndReset() {
         makeOutOfOrderReport(context, imported)
+        makeOutOfAlphabeticalOrderReport(context, imported, sortOrder)
 
         if (newlinesBetweenImports !== 'ignore') {
           makeNewlinesBetweenReport(context, imported, newlinesBetweenImports)
