@@ -141,7 +141,7 @@ import index from './';
 import sibling from './foo';
 ```
 
-### `sort-order: [ignore|alphabetical]`:
+### `sort: [ignore|alphabetical]`:
 
 
 Enforces alphabetical sorting within import groups:
@@ -152,7 +152,7 @@ Enforces alphabetical sorting within import groups:
 With the default group setting, the following will be invalid:
 
 ```js
-/* eslint import/order: ["error", {"sort-order": "alphabetical"}] */
+/* eslint import/order: ["error", {"sort": "alphabetical"}] */
 import path from 'path';
 import fs from 'fs';
 import index from './';
@@ -162,7 +162,7 @@ import sibling from './foo';
 while this will be valid:
 
 ```js
-/* eslint import/order: ["error", {"sort-order": "alphabetical"}] */
+/* eslint import/order: ["error", {"sort": "alphabetical"}] */
 import fs from 'fs';
 import path from 'path';
 import index from './';
@@ -170,7 +170,7 @@ import sibling from './foo';
 ```
 
 ```js
-/* eslint import/order: ["error", {"sort-order": "ignore"}] */
+/* eslint import/order: ["error", {"sort": "ignore"}] */
 import path from 'path';
 import fs from 'fs';
 import index from './';

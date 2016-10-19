@@ -382,7 +382,15 @@ ruleTester.run('order', rule, {
         import fs from 'fs';
         import path from 'path';
       `,
-      options: [{ 'sort-order': 'alphabetical' }],
+      options: [{ 'sort': 'alphabetical' }],
+    }),
+    // Alphabetical order with duplicate import
+    test({
+      code: `
+        import fs from 'fs';
+        import fs from 'fs';
+      `,
+      options: [{ 'sort': 'alphabetical' }],
     }),
     // Alphabetical order with multiple groups
     test({
@@ -391,7 +399,7 @@ ruleTester.run('order', rule, {
         import path from 'path';
         import async from 'async';
       `,
-      options: [{ 'sort-order': 'alphabetical' }],
+      options: [{ 'sort': 'alphabetical' }],
     }),
     // Ignore alphabetical order
     test({
@@ -399,7 +407,7 @@ ruleTester.run('order', rule, {
         import path from 'path';
         import fs from 'fs';
       `,
-      options: [{ 'sort-order': 'ignore' }],
+      options: [{ 'sort': 'ignore' }],
     }),
     // Ignore alphabetical order across groups
     test({
@@ -407,7 +415,7 @@ ruleTester.run('order', rule, {
         import fs from 'fs';
         import async from 'async';
       `,
-      options: [{ 'sort-order': 'alphabetical' }],
+      options: [{ 'sort': 'alphabetical' }],
     }),
   ],
   invalid: [
@@ -799,7 +807,22 @@ ruleTester.run('order', rule, {
         import path from 'path';
         import fs from 'fs';
       `,
-      options: [{ 'sort-order': 'alphabetical' }],
+      options: [{ 'sort': 'alphabetical' }],
+      errors: [
+        {
+          ruleId: 'order',
+          message: '`fs` import should occur before import of `path`',
+        },
+      ],
+    }),
+    // Bad alphabetical order with duplicate import
+    test({
+      code: `
+        import fs from 'fs';
+        import path from 'path';
+        import fs from 'fs';
+      `,
+      options: [{ 'sort': 'alphabetical' }],
       errors: [
         {
           ruleId: 'order',
@@ -821,7 +844,7 @@ ruleTester.run('order', rule, {
             ['sibling'],
             ['parent', 'external'],
           ],
-          'sort-order': 'alphabetical',
+          'sort': 'alphabetical',
         }
       ],
       errors: [
@@ -838,7 +861,7 @@ ruleTester.run('order', rule, {
         import fs from 'fs';
         import path from 'path';
       `,
-      options: [{ 'sort-order': 'alphabetical' }],
+      options: [{ 'sort': 'alphabetical' }],
       errors: [
         {
           ruleId: 'order',
@@ -853,7 +876,7 @@ ruleTester.run('order', rule, {
         import path from 'path';
         import fs from 'fs';
       `,
-      options: [{ 'sort-order': 'alphabetical' }],
+      options: [{ 'sort': 'alphabetical' }],
       errors: [
         {
           ruleId: 'order',

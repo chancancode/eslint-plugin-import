@@ -17,14 +17,11 @@ function reverse(array) {
   }).reverse()
 }
 
-function alphabetical(firstName, secondName, direction) {
+function isAlphabetized(firstString, secondString, direction) {
   if (direction === 'a-z') {
-    return firstName < secondName
-  } else if (direction === 'z-a') {
-    return firstName > secondName
-  } else {
-    throw new Error('Invalid alphabetical direction' + direction)
+    return firstString <= secondString
   }
+  return firstString >= secondString
 }
 
 function findOutOfOrder(imported) {
@@ -41,8 +38,8 @@ function findOutOfOrder(imported) {
   })
 }
 
-function findOutOfAlphabeticalOrder(imported, sortOrder, direction) {
-  if (imported.length === 0 || sortOrder === 'ignore') {
+function findOutOfAlphabeticalOrder(imported, direction) {
+  if (imported.length === 0) {
     return []
   }
   let maxSeenRankNode = imported[0]
@@ -53,13 +50,13 @@ function findOutOfAlphabeticalOrder(imported, sortOrder, direction) {
       // New group, reset max alphabetical node
       maxSeenAlphabeticalNode = importedModule
     }
-    const resAlphabetical = alphabetical(
-      importedModule.name,
+    const resAlphabetical = !isAlphabetized(
       maxSeenAlphabeticalNode.name,
+      importedModule.name,
       direction
     )
     const reversedDirection = direction.split('').reverse().join('')
-    if (alphabetical(importedModule.name, maxSeenAlphabeticalNode.name, reversedDirection)) {
+    if (isAlphabetized(importedModule.name, maxSeenAlphabeticalNode.name, reversedDirection)) {
       maxSeenAlphabeticalNode = importedModule
     }
     return resAlphabetical
@@ -79,7 +76,10 @@ function reportOutOfOrder(context, imported, outOfOrder, order) {
 function reportOutOfAlphabeticalOrder(context, imported, outOfOrder, order, direction) {
   outOfOrder.forEach(function (imp) {
     const found = imported.find(function hasHigherAlphabeticalOrder(importedItem) {
-      return alphabetical(imp.name, importedItem.name, direction) && importedItem.rank === imp.rank
+      const alphabetized = isAlphabetized(imp.name, importedItem.name, direction)
+      const sameGroup = (importedItem.rank === imp.rank)
+      const notDuplicateImport = (imp.name !== importedItem.name)
+      return alphabetized && sameGroup && notDuplicateImport
     })
     context.report(imp.node, '`' + imp.name + '` import should occur ' + order +
       ' import of `' + found.name + '`')
@@ -88,7 +88,7 @@ function reportOutOfAlphabeticalOrder(context, imported, outOfOrder, order, dire
 
 function makeOutOfOrderReport(context, imported) {
   const outOfOrder = findOutOfOrder(imported)
-  if (!outOfOrder.length) {
+  if (outOfOrder.length === 0) {
     return
   }
   // There are things to report. Try to minimize the number of reported errors.
@@ -101,14 +101,14 @@ function makeOutOfOrderReport(context, imported) {
   reportOutOfOrder(context, imported, outOfOrder, 'before')
 }
 
-function makeOutOfAlphabeticalOrderReport(context, imported, sortOrder) {
-  const outOfOrder = findOutOfAlphabeticalOrder(imported, sortOrder, 'a-z')
-  if (!outOfOrder.length) {
+function makeOutOfAlphabeticalOrderReport(context, imported) {
+  const outOfOrder = findOutOfAlphabeticalOrder(imported, 'a-z')
+  if (outOfOrder.length === 0) {
     return
   }
   // There are things to report. Try to minimize the number of reported errors.
   const reversedImported = reverse(imported)
-  const reversedOrder = findOutOfAlphabeticalOrder(reversedImported, sortOrder, 'z-a')
+  const reversedOrder = findOutOfAlphabeticalOrder(reversedImported, 'z-a')
   if (reversedOrder.length < outOfOrder.length) {
     reportOutOfAlphabeticalOrder(context, reversedImported, reversedOrder, 'after', 'z-a')
     return
@@ -218,7 +218,7 @@ module.exports = {
           'newlines-between': {
             enum: [ 'ignore', 'always', 'never' ],
           },
-          'sort-order': {
+          'sort': {
             enum: [ 'alphabetical', 'ignore' ],
           },
         },
@@ -230,7 +230,7 @@ module.exports = {
   create: function importOrderRule (context) {
     const options = context.options[0] || {}
     const newlinesBetweenImports = options['newlines-between'] || 'ignore'
-    const sortOrder = options['sort-order'] || 'ignore'
+    const sortOrder = options['sort'] || 'ignore'
     let ranks
 
     try {
@@ -269,7 +269,9 @@ module.exports = {
       },
       'Program:exit': function reportAndReset() {
         makeOutOfOrderReport(context, imported)
-        makeOutOfAlphabeticalOrderReport(context, imported, sortOrder)
+        if (sortOrder === 'alphabetical') {
+          makeOutOfAlphabeticalOrderReport(context, imported)
+        }
 
         if (newlinesBetweenImports !== 'ignore') {
           makeNewlinesBetweenReport(context, imported, newlinesBetweenImports)
